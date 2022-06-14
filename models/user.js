@@ -1,10 +1,16 @@
+const bcrypt = require('bcrypt');
 // imports the Model class and DataTypes object from Sequelize
 const { Model, DataTypes } = require('sequelize');
 const sequelize = require('../config/connection');
 
 // create our User model
-class User extends Model {}
+class User extends Model {
 
+  // set up method to run on instance data (per user) to check password
+  checkPassword(loginPw) {
+    return bcrypt.compareSync(loginPw, this.password);
+  }
+}
 // define table columns and configuration
     // use init to initialize the model's data and configuration passing in two objects as arguments
     // the first object defines the columns and data types
@@ -51,7 +57,20 @@ User.init(
   },
   {
     // TABLE CONFIGURATION OPTIONS GO HERE (https://sequelize.org/v5/manual/models-definition.html#configuration))
-
+    hooks: {
+      // set up beforeCreate lifecycle "hook" functionality
+      async beforeCreate(newUserData) {
+        newUserData.password = await bcrypt.hash(newUserData.password, 10);
+        return newUserData;
+      },
+      // set up beforeUpdate lifecycle "hook" functionality
+      async beforeUpdate(updatedUserData) {
+        updatedUserData.password = await bcrypt.hash(updatedUserData.password, 10);
+        return updatedUserData;
+      }
+    },
+  
+    
     // pass in our imported sequelize connection (the direct connection to our database)
     sequelize,
     // don't automatically create createdAt/updatedAt timestamp fields
@@ -63,6 +82,9 @@ User.init(
     // make it so our model name stays lowercase in the database
     modelName: 'user'
   }
+
 );
+
+  
 
 module.exports = User;
